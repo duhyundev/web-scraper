@@ -49,7 +49,7 @@ const scrapper = async () => {
     console.log('LOGIN FAIL');
   } else {
     let url_number;
-    for (let i = 1; i < 867; i++) {
+    for (let i = 1; i < 900 /*4*/; i++) {
       if (i < 10) {
         url_number = `00${i}`;
       } else if (i < 100) {
@@ -61,6 +61,24 @@ const scrapper = async () => {
         `https://github.com/codestates/help-desk/issues/${url_number}`
       );
       let data = await page.evaluate(() => {
+        let authorList = Array.prototype.slice
+          .call(
+            document.querySelectorAll(
+              '.author.link-gray-dark.css-truncate-target.width-fit'
+            )
+          )
+          .map(node => node.innerText);
+        let timeStampList = Array.prototype.slice
+          .call(document.querySelectorAll('.js-timestamp'))
+          .map(node => node.innerText);
+
+        /* .map(dom => dom.querySelector('relative-time').getAttribute('title')); */
+        let commentList = Array.prototype.slice
+          .call(
+            document.querySelectorAll('.d-block.comment-body.markdown-body')
+          )
+          .map(node => node.innerHTML);
+
         return {
           issueName: document.querySelector('.js-issue-title').innerText,
           issueAuthor: document.querySelector(
@@ -70,10 +88,12 @@ const scrapper = async () => {
             .querySelector(
               '#partial-discussion-header > div.TableObject.gh-header-meta > div.TableObject-item.TableObject-item--primary > relative-time'
             )
-            .getAttribute('title')
-          /* issueContent: document.querySelector(
-            'div.edit-comment-hide.js-edit-comment-hide'
-          ).innerHTML */
+            .getAttribute('title'),
+          issueContent: {
+            authorList: authorList,
+            commentList: commentList,
+            timeStampList: timeStampList
+          }
         };
       });
       console.log(data);
@@ -95,9 +115,33 @@ const scrapper = async () => {
           }
         }
       );
-      await page.screenshot({
-        path: `data/${directory}/issues/issue_${url_number}.jpg`
-      });
+
+      for (let j = 0; j < data.issueContent.authorList.length; j++) {
+        base('issueComment').create(
+          [
+            {
+              fields: {
+                foreignKey: i,
+                author: data.issueContent.authorList[j],
+                comment: data.issueContent.commentList[j],
+                date: data.issueContent.timeStampList[j]
+              }
+            }
+          ],
+          function(err, records) {
+            if (err) {
+              console.error(err);
+              return;
+            }
+          }
+        );
+        await page.waitFor(100);
+      }
+
+      /* await page.screenshot({
+        path: `data/${directory}/issues/issue_${url_number}.jpg`,
+        fullPage: true
+      }); */
       await page.waitFor(500);
     }
   }
