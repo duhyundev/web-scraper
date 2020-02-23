@@ -1,6 +1,6 @@
 var Airtable = require('airtable');
-var base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(
-  'appZ7Dh598tvlkK1x'
+var base = new Airtable({ apiKey: process.env.PRIVATE_AIRTABLE_KEY }).base(
+  'appNsRDe0DyAccVoe'
 );
 
 module.exports = base;

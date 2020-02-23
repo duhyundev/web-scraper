@@ -49,7 +49,7 @@ const scrapper = async () => {
     console.log('LOGIN FAIL');
   } else {
     let url_number;
-    for (let i = 1; i < 900 /*4*/; i++) {
+    for (let i = 2; i < 1229 /*4*/; i++) {
       if (i < 10) {
         url_number = `00${i}`;
       } else if (i < 100) {
@@ -138,10 +138,10 @@ const scrapper = async () => {
         await page.waitFor(100);
       }
 
-      /* await page.screenshot({
+      await page.screenshot({
         path: `data/${directory}/issues/issue_${url_number}.jpg`,
         fullPage: true
-      }); */
+      });
       await page.waitFor(500);
     }
   }
