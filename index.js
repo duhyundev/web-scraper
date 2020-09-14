@@ -8,18 +8,14 @@ const scrapper = async () => {
   const github_id = 'duhyundev';
   const github_pw = process.env.PRIVATE_KEY;
 
-  const directory = new Date()
-    .toString()
-    .slice(0, 15)
-    .split(' ')
-    .join('-');
+  const directory = new Date().toString().slice(0, 15).split(' ').join('-');
 
-  mkdirp(`${__dirname}/data/${directory}`, function(err) {
+  mkdirp(`${__dirname}/data/${directory}`, function (err) {
     if (err) {
       console.error(err);
     } else {
       console.log(`${directory} folder is created.`);
-      mkdirp(`${__dirname}/data/${directory}/issues`, err => {
+      mkdirp(`${__dirname}/data/${directory}/issues`, (err) => {
         if (err) {
           console.log(err);
         } else {
@@ -49,7 +45,7 @@ const scrapper = async () => {
     console.log('LOGIN FAIL');
   } else {
     let url_number;
-    for (let i = 2; i < 1229 /*4*/; i++) {
+    for (let i = 1587; i < 2037 /*4*/; i++) {
       if (i < 10) {
         url_number = `00${i}`;
       } else if (i < 100) {
@@ -67,33 +63,33 @@ const scrapper = async () => {
               '.author.link-gray-dark.css-truncate-target.width-fit'
             )
           )
-          .map(node => node.innerText);
+          .map((node) => node.innerText);
         let timeStampList = Array.prototype.slice
           .call(document.querySelectorAll('.js-timestamp'))
-          .map(node => node.innerText);
+          .map((node) => node.innerText);
 
         /* .map(dom => dom.querySelector('relative-time').getAttribute('title')); */
         let commentList = Array.prototype.slice
           .call(
             document.querySelectorAll('.d-block.comment-body.markdown-body')
           )
-          .map(node => node.innerHTML);
+          .map((node) => node.innerHTML);
 
         return {
           issueName: document.querySelector('.js-issue-title').innerText,
           issueAuthor: document.querySelector(
-            '#partial-discussion-header > div.TableObject.gh-header-meta > div.TableObject-item.TableObject-item--primary > a'
+            '#partial-discussion-header > div.d-flex.flex-items-center.mt-0.gh-header-meta > div.flex-auto.min-width-0 > a'
           ).innerText,
           issueDate: document
             .querySelector(
-              '#partial-discussion-header > div.TableObject.gh-header-meta > div.TableObject-item.TableObject-item--primary > relative-time'
+              '#partial-discussion-header > div.d-flex.flex-items-center.mt-0.gh-header-meta > div.flex-auto.min-width-0 > relative-time'
             )
             .getAttribute('title'),
           issueContent: {
             authorList: authorList,
             commentList: commentList,
-            timeStampList: timeStampList
-          }
+            timeStampList: timeStampList,
+          },
         };
       });
       console.log(data);
@@ -104,11 +100,11 @@ const scrapper = async () => {
               id: i,
               title: data.issueName,
               author: data.issueAuthor,
-              date: data.issueDate
-            }
-          }
+              date: data.issueDate,
+            },
+          },
         ],
-        function(err, records) {
+        function (err, records) {
           if (err) {
             console.error(err);
             return;
@@ -124,11 +120,11 @@ const scrapper = async () => {
                 foreignKey: i,
                 author: data.issueContent.authorList[j],
                 comment: data.issueContent.commentList[j],
-                date: data.issueContent.timeStampList[j]
-              }
-            }
+                date: data.issueContent.timeStampList[j],
+              },
+            },
           ],
-          function(err, records) {
+          function (err, records) {
             if (err) {
               console.error(err);
               return;
@@ -140,7 +136,7 @@ const scrapper = async () => {
 
       await page.screenshot({
         path: `data/${directory}/issues/issue_${url_number}.jpg`,
-        fullPage: true
+        fullPage: true,
       });
       await page.waitFor(500);
     }
