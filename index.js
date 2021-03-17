@@ -1,21 +1,34 @@
-var mkdirp = require('mkdirp');
-var puppeteer = require('puppeteer');
+const mkdirp = require('mkdirp');
+const puppeteer = require('puppeteer');
 
-const base = require('./.airci/index');
+const { SpreadsheetClient } = require('./lib/spreadsheet');
+
 const scrapper = async () => {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
+
+  // login field
   const github_id = 'duhyundev';
   const github_pw = process.env.PRIVATE_KEY;
 
+  // bootcamp field
+  const bootcampName = 'AIB';
+  const seb_url = 'help-desk';
+  const aib_url = 'help-desk-ds';
   const directory = new Date().toString().slice(0, 15).split(' ').join('-');
+
+  // spreadSheet field
+  const spreadSheetService = new SpreadsheetClient();
+  const speetId = '1IAWhpbT9AApyEnprBhOXD6Wy1_UyfHQw7TL_QaOhUGU';
+
+  const token = await spreadSheetService.getAuthToken();
 
   mkdirp(`${__dirname}/data/${directory}`, function (err) {
     if (err) {
       console.error(err);
     } else {
-      console.log(`${directory} folder is created.`);
-      mkdirp(`${__dirname}/data/${directory}/issues`, (err) => {
+      console.log(`${directory}/${bootcampName} folder is created.`);
+      mkdirp(`${__dirname}/data/${directory}/${bootcampName}/issues`, (err) => {
         if (err) {
           console.log(err);
         } else {
@@ -25,6 +38,7 @@ const scrapper = async () => {
     }
   });
 
+  // login-part
   await page.goto('https://github.com/login');
   await page.screenshot({ path: `data/${directory}/attempt_login_page.jpg` });
   await page.evaluate(
@@ -41,11 +55,13 @@ const scrapper = async () => {
   await page.waitFor(500);
   await page.screenshot({ path: `data/${directory}/login_status.jpg` });
 
+  // 로그인 실패 처리
   if (page.url() === 'https://github.com/session') {
     console.log('LOGIN FAIL');
   } else {
+    // 이슈 넘버링 iterator
     let url_number;
-    for (let i = 1587; i < 2037 /*4*/; i++) {
+    for (let i = 491; i < 544 /*4*/; i++) {
       if (i < 10) {
         url_number = `00${i}`;
       } else if (i < 100) {
@@ -54,21 +70,25 @@ const scrapper = async () => {
         url_number = i;
       }
       await page.goto(
-        `https://github.com/codestates/help-desk/issues/${url_number}`
+        `https://github.com/codestates/${aib_url}/issues/${url_number}`
       );
+
       let data = await page.evaluate(() => {
+        // author
         let authorList = Array.prototype.slice
           .call(
             document.querySelectorAll(
-              '.author.link-gray-dark.css-truncate-target.width-fit'
+              '.author.Link--primary.css-truncate-target.width-fit'
             )
           )
           .map((node) => node.innerText);
+
+        // timeStamp
         let timeStampList = Array.prototype.slice
           .call(document.querySelectorAll('.js-timestamp'))
           .map((node) => node.innerText);
 
-        /* .map(dom => dom.querySelector('relative-time').getAttribute('title')); */
+        // commment
         let commentList = Array.prototype.slice
           .call(
             document.querySelectorAll('.d-block.comment-body.markdown-body')
@@ -92,50 +112,44 @@ const scrapper = async () => {
           },
         };
       });
+
+      console.log(`issue number ${url_number}`);
       console.log(data);
-      base('issueTable').create(
-        [
-          {
-            fields: {
-              id: i,
-              title: data.issueName,
-              author: data.issueAuthor,
-              date: data.issueDate,
-            },
-          },
-        ],
-        function (err, records) {
-          if (err) {
-            console.error(err);
-            return;
-          }
-        }
-      );
+      console.log('-----------------------------------------');
+
+      await spreadSheetService.appendSpreadsheetValues({
+        auth: token,
+        spreadsheetId: speetId,
+        sheetName: 'AIB',
+        values: [[i, data.issueName, data.issueAuthor, data.issueDate]],
+      });
 
       for (let j = 0; j < data.issueContent.authorList.length; j++) {
-        base('issueComment').create(
-          [
-            {
-              fields: {
-                foreignKey: i,
-                author: data.issueContent.authorList[j],
-                comment: data.issueContent.commentList[j],
-                date: data.issueContent.timeStampList[j],
-              },
-            },
+        console.log([
+          i,
+          data.issueContent.authorList[j],
+          data.issueContent.commentList[j],
+          data.issueContent.timeStampList[j],
+        ]);
+        await spreadSheetService.appendSpreadsheetValues({
+          auth: token,
+          spreadsheetId: speetId,
+          sheetName: 'AIB_COMMENT',
+          values: [
+            [
+              i,
+              data.issueContent.authorList[j],
+              data.issueContent.commentList[j].slice(1, 49999),
+              data.issueContent.timeStampList[j],
+            ],
           ],
-          function (err, records) {
-            if (err) {
-              console.error(err);
-              return;
-            }
-          }
-        );
+        });
+
         await page.waitFor(100);
       }
 
       await page.screenshot({
-        path: `data/${directory}/issues/issue_${url_number}.jpg`,
+        path: `data/${directory}/${bootcampName}/issues/issue_${url_number}.jpg`,
         fullPage: true,
       });
       await page.waitFor(500);

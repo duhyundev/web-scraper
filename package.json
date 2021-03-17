@@ -19,6 +19,9 @@
   "homepage": "https://github.com/duhyundev/web-scraper#readme",
   "dependencies": {
     "airtable": "^0.7.1",
+    "dotenv": "^8.2.0",
+    "google-spreadsheet": "^3.1.15",
+    "googleapis": "^67.1.1",
     "puppeteer": "^1.20.0"
   }
 }
